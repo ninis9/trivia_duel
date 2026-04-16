@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Trivia Duel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { background: #0a0a0a; color: #fff; font-family: 'DM Sans', sans-serif; height: 100dvh; }
+    #app { max-width: 480px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    button { cursor: pointer; border: none; outline: none; font-family: 'DM Sans', sans-serif; touch-action: manipulation; }
+
+    .score-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #111; padding: 12px 20px; border-bottom: 1px solid #222;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .score-bar .team { text-align: center; }
+    .score-bar .pts { font-family: 'Bebas Neue', cursive; font-size: 28px; letter-spacing: 2px; }
+    .score-bar .label { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.8; }
+    .score-bar .vs { color: #444; font-family: 'Bebas Neue', cursive; font-size: 22px; }
+
+    .screen { flex: 1; display: flex; flex-direction: column; }
+    .screen-inner { flex: 1; display: flex; flex-direction: column; padding: 32px 24px; gap: 24px; }
+    .screen-inner-answer { flex: 1; display: flex; flex-direction: column; padding: 24px 24px 32px; gap: 20px; }
+
+    .question-box {
+      flex: 1; min-height: 0; background: #111; border-radius: 20px; padding: 20px 24px;
+      border: 1px solid #222; display: flex; align-items: center; justify-content: center;
+      text-align: center; font-size: 20px; font-weight: 600; line-height: 1.4; color: #f0f0f0;
+    }
+    .question-box-answer {
+      background: #111; border-radius: 20px; padding: 24px;
+      border: 1px solid #222; text-align: center;
+      font-size: 20px; font-weight: 600; line-height: 1.4; color: #f0f0f0;
+    }
+
+    .counters { display: flex; gap: 16px; flex: 1; min-height: 0; }
+    .counter-card {
+      flex: 1; border-radius: 16px; padding: 16px 12px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    }
+    .counter-card.red { background: #130808; border: 1px solid #3a1010; }
+    .counter-card.blue { background: #080d18; border: 1px solid #0e2240; }
+    .counter-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .counter-label.red { color: #ff3b3b; }
+    .counter-label.blue { color: #3b8fff; }
+    .counter-value { font-family: 'Bebas Neue', cursive; font-size: 72px; line-height: 1; }
+    .counter-value.red { color: #ff3b3b; }
+    .counter-value.blue { color: #3b8fff; }
+
+    .counter-btn {
+      width: 64px; height: 64px; border-radius: 50%; font-size: 32px; font-weight: 700;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; color: #fff; border: 2px solid currentColor;
+    }
+    .counter-btn.red { color: #ff3b3b; border-color: #ff3b3b; }
+    .counter-btn.blue { color: #3b8fff; border-color: #3b8fff; }
+
+    .main-btn {
+      border-radius: 14px; text-transform: uppercase; padding: 16px 28px;
+      font-family: 'Bebas Neue', cursive; font-size: 22px; letter-spacing: 2px;
+      width: 100%;
+    }
+    .main-btn.start { background: #1e1e1e; color: #fff; border: 1px solid #333; }
+    .main-btn.win-red { background: #ff3b3b; color: #fff; }
+    .main-btn.win-blue { background: #3b8fff; color: #fff; }
+    .main-btn.lose { background: #1a1a1a; color: #888; border: 1px solid #333; }
+
+    .btn-row { display: flex; gap: 12px; flex-shrink: 0; }
+    .btn-row .main-btn { width: auto; flex: 1; }
+
+    .big-number {
+      font-family: 'Bebas Neue', cursive; font-size: 160px; line-height: 1; text-align: center;
+    }
+    .big-number.red { color: #ff3b3b; text-shadow: 0 0 40px #ff3b3b66; }
+    .big-number.blue { color: #3b8fff; text-shadow: 0 0 40px #3b8fff66; }
+
+    .arrow-row { display: flex; justify-content: center; gap: 28px; margin-top: 20px; }
+    .arrow-btn {
+      width: 72px; height: 72px; border-radius: 50%; font-size: 34px;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      background: #1e1e1e; color: #fff;
+    }
+    .arrow-btn:disabled { opacity: 0.25; cursor: default; }
+
+    /* ── TIMER ── */
+    .timer {
+      font-family: 'Bebas Neue', cursive; font-size: 36px; letter-spacing: 3px;
+      color: #fff; text-align: center;
+    }
+    .timer.expired { color: #ff3b3b; }
+
+    /* ── TIME LIMIT SCREEN ── */
+    .time-screen-inner {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 24px; gap: 32px;
+    }
+    .time-title {
+      font-family: 'Bebas Neue', cursive; font-size: 32px; letter-spacing: 4px; color: #fff;
+    }
+    .time-btn-grid { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+    .time-btn-row { display: flex; gap: 14px; justify-content: center; }
+    .time-btn {
+      flex: 1; padding: 14px 0; border-radius: 14px;
+      font-family: 'Bebas Neue', cursive; font-size: 22px; letter-spacing: 2px;
+      background: transparent; color: #3b8fff; border: 2px solid #3b8fff;
+    }
+    .time-btn.selected { background: #3b8fff; color: #fff; border-color: #3b8fff; }
+
+    /* ── NEXT QUESTION SCREEN ── */
+    .next-screen-inner {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 24px; gap: 40px;
+    }
+    .next-title {
+      font-family: 'Bebas Neue', cursive; font-size: 40px; letter-spacing: 4px;
+      color: #fff; text-align: center;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div class="screen" id="screen-start" style="justify-content:center; align-items:center; gap:75px;">
+    <div style="font-family:'Bebas Neue', cursive; font-size:64px; letter-spacing:6px; background:linear-gradient(90deg,#ff3b3b,#3b8fff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center;">TRIVIA DUEL</div>
+    <button class="main-btn" onclick="showQuestion()" style="background:linear-gradient(135deg,#ff3b3b,#3b8fff); color:#fff; width:80%;">START GAME</button>
+  </div>
+
+  <!-- SCORE BAR -->
+  <div class="score-bar hidden" id="score-bar">
+    <div class="team">
+      <div class="pts" style="color:#ff3b3b" id="red-pts">0</div>
+      <div class="label" style="color:#ff3b3b">Team Red</div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="team">
+      <div class="pts" style="color:#3b8fff" id="blue-pts">0</div>
+      <div class="label" style="color:#3b8fff">Team Blue</div>
+    </div>
+  </div>
+
+  <!-- WETTEN SCREEN -->
+  <div class="screen hidden" id="screen-question">
+    <div class="screen-inner">
+      <div class="question-box" id="q-text-1"></div>
+      <div class="counters">
+        <div class="counter-card red">
+          <div class="counter-label red">TEAM RED</div>
+          <div class="counter-value red" id="red-count">0</div>
+          <button class="counter-btn red" onclick="increment('red')">+</button>
+        </div>
+        <div class="counter-card blue">
+          <div class="counter-label blue">TEAM BLUE</div>
+          <div class="counter-value blue" id="blue-count">0</div>
+          <button class="counter-btn blue" onclick="increment('blue')">+</button>
+        </div>
+      </div>
+      <button class="main-btn start" onclick="goToTimeLimit()">OK</button>
+    </div>
+  </div>
+
+  <!-- TIME LIMIT SCREEN -->
+  <div class="screen hidden" id="screen-time">
+    <div class="screen-inner">
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; width:100%;">
+        <div class="time-title" style="text-align:center; font-family:'Bebas Neue', cursive; font-size:62px; letter-spacing:4px; color:#fff; width:100%; white-space:nowrap;">SELECT TIME LIMIT</div>
+        <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
+          <div class="time-btn-row" style="width:100%;">
+            <button class="time-btn" id="time-60"  onclick="selectTime(60)">01:00</button>
+            <button class="time-btn" id="time-120" onclick="selectTime(120)">02:00</button>
+            <button class="time-btn" id="time-180" onclick="selectTime(180)">03:00</button>
+          </div>
+          <div class="time-btn-row" style="width:100%;">
+            <button class="time-btn" id="time-240" onclick="selectTime(240)" style="max-width: calc(33.333% - 10px);">04:00</button>
+            <button class="time-btn" id="time-300" onclick="selectTime(300)" style="max-width: calc(33.333% - 10px);">05:00</button>
+          </div>
+        </div>
+      </div>
+      <button class="main-btn start" onclick="handleStart()">START</button>
+    </div>
+  </div>
+
+  <!-- ANSWER SCREEN -->
+  <div class="screen hidden" id="screen-answer">
+    <div class="screen-inner-answer">
+      <div class="question-box-answer" id="q-text-2"></div>
+      <div class="timer" id="timer-display">00:00</div>
+      <div style="text-align:center; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <div class="big-number" id="display-value">0</div>
+        <div class="arrow-row">
+          <button class="arrow-btn" id="btn-down" onclick="adjustValue(-1)">▼</button>
+          <button class="arrow-btn" id="btn-up" onclick="adjustValue(1)">▲</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="main-btn" id="btn-win" onclick="handleWin()">WIN</button>
+        <button class="main-btn lose" onclick="handleLose()">LOSE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEXT QUESTION SCREEN -->
+  <div class="screen hidden" id="screen-next">
+    <div class="next-screen-inner">
+      <div class="next-title">NEXT QUESTION</div>
+      <button class="main-btn start" style="width:80%;" onclick="goToNextQuestion()">OK</button>
+    </div>
+  </div>
+
+</div>
+<script>
+const QUESTIONS = [
+  "Wie viele Staaten der USA kann dein Partner aufzählen?",
+  "Wie viele Schauspieler kennt dein Partner?",
+  "Wie viele Getränkemarken kann dein Partner aufzählen?",
+  "Wie viele berühmte Dichter kennt dein Partner?",
+  "Wie viele Supermarktketten kennt dein Partner?",
+  "Wie viele Hauptstädte kann dein Partner nennen?",
+  "Wie viele verschiedene Hülsenfrüchte kennt dein Partner?",
+  "Wie viele Disney-Prinzessinnen kann dein Partner nennen?",
+  "Wie viele Sportarten kennt dein Partner?",
+  "Wie viele Süßigkeiten-Marken kennt dein Partner?",
+  "Wie viele Feiertage kann dein Partner aufzählen?",
+  "Wie viele Disney-Filme kann dein Partner nennen?",
+  "Wie viele Apps zum Musik hören kennt dein Partner?",
+  "Wie viele Streaming Services kann dein Partner nennen?",
+  "Wie viele Blumenarten kann dein Partner nennen?",
+  "Wie viele Länder in Südamerika kann dein Partner aufzählen?",
+  "Wie viele Instrumente kennt dein Partner?",
+  "Wie viele berühmte Wissenschaftler kennt dein Partner?",
+  "Wie viele chemischen Elemente aus dem Periodensystem kennt dein Partner?",
+  "Wie viele Fluggesellschaften kennt dein Partner?",
+  "Wie viele Städte in Spanien kennt dein Partner?",
+  "Wie viele Städte in Italien kennt dein Partner?",
+  "Wie viele Städte in Deutschland kennt dein Partner?",
+  "Wie viele Nationalflaggen mit genau drei Farben kennt dein Partner?",
+  "Wie viele verschiedene Käsesorten kennt dein Partner?",
+  "Wie viele Meerestiere kann dein Partner nennen?",
+  "Wie viele Hunderassen kann dein Partner aufzählen?",
+  "Wie viele berühmte Schriftsteller kennt dein Partner?",
+  "Wie viele europäische Hauptstädte kennt dein Partner?",
+  "Wie viele Marken von Duschgel kennt dein Partner?",
+  "Wie viele verschiedene Tanzstile kennt dein Partner?",
+  "Wie viele Länder in Europa kann dein Partner aufzählen?",
+  "Wie viele Kartenspiele kennt dein Partner?",
+  "Wie viele Brettspiele kennt dein Partner?",
+  "Wie viele Hauptstädte in Asien kann dein Partner nennen?",
+  "Wie viele Arten von Käfern kennt dein Partner?",
+  "Wie viele Fußballvereine kann dein Partner nennen?",
+  "Wie viele Mode-Marken kennt dein Partner?",
+  "Wie viele Tiere mit 'S' kennt dein Partner?",
+  "Wie viele Automarken kann dein Partner nennen?",
+  "Wie viele nachtaktive Tiere kennt dein Partner?",
+  "Wie viele Figuren aus Star Wars kennt dein Partner?",
+  "Wie viele Serien auf Netflix kann dein Partner nennen?",
+  "Wie viele Marken von Mineralwasser kann dein Partner nennen?",
+  "Wie viele verschiedene Vögel kann dein Partner nennen?",
+  "Wie viele Handy-Anbieter kann dein Partner nennen?",
+  "Wie viele Outdoor Sportarten kann dein Partner nennen?",
+  "Wie viele berühmte Sportlerinnen kennt dein Partner?",
+  "Wie viele Liegestütze schafft dein Partner?",
+  "Wie viele Präsidenten der USA kann dein Partner nennen?",
+  "Wie viele griechische Götter kann dein Partner nennen?",
+  "Wie viele Seen kann dein Partner aufzählen?",
+  "Wie viele Flüsse kann dein Partner aufzählen?",
+  "Wie viele Figuren aus Harry Potter kann dein Partner nennen?",
+  "Wie viele römische Götter kann dein Partner nennen?",
+  "Wie viele Philosophen kennt dein Partner?",
+  "Wie viele Märchen kennt dein Partner?",
+  "Wie viele Weihnachtslieder kennt dein Partner?",
+  "Wie viele Bands kennt dein Partner?",
+  "Wie viele Länder mit 'A' kennt dein Partner?",
+  "Wie viele Radiosender kann dein Partner nennen?",
+  "Wie viele Eiscreme-Sorten kennt dein Partner?",
+  "Wie viele verschiedene Nüsse kennt dein Partner?",
+  "Wie viele Gewürze kann dein Partner nennen?",
+  "Wie viele Blasinstrumente kennt dein Partner?",
+  "Wie viele Musicals kennt dein Partner?",
+  "Wie viele Songs von 'Queen' kennt dein Partner?",
+  "Wie viele Schauspieler aus Marvel-Filmen kennt dein Partner?",
+  "Wie viele Superhelden kann dein Partner nennen?",
+  "Wie viele Schurken kann dein Partner nennen?",
+  "Wie viele Nobelpreisträger kann dein Partner nennen?",
+  "Wie viele Pokémon kennt dein Partner?",
+  "Wie viele Länder mit mehr als einer Amtssprache kennt dein Partner?",
+  "Wie viele Tiere mit zwei Beinen kann dein Partner nennen?",
+  "Wie viele Berge kann dein Partner nennen?",
+  "Wie viele Sehenswürdigkeiten kennt dein Partner?",
+  "Wie viele Inseln kennt dein Partner?",
+  "Wie viele giftige Tierarten kann dein Partner nennen?",
+  "Wie viele Sternbilder kennt dein Partner?",
+  "Wie viele berühmte Politiker kennt dein Partner?",
+  "Wie viele Make-up-Marken kennt dein Partner?",
+  "Wie viele Länder in Afrika kann dein Partner aufzählen?",
+  "Wie viele Tiere, die Winterschlaf betreiben, kennt dein Partner?",
+  "Wie viele Songs von 'Michael Jackson' kennt dein Partner?",
+  "Wie viele Sportarten mit einem Ball kann dein Partner nennen?",
+  "Wie viele Tiere mit Hörnern kennt dein Partner?",
+  "Wie viele Waldtiere kennt dein Partner?",
+  "Wie viele Gemüsesorten kann dein Partner aufzählen?",
+  "Wie viele Pilzarten kennt dein Partner?",
+  "Wie viele berühmte Tiere aus Filmen oder Serien kennt dein Partner?",
+  "Wie viele Getränke, die warm getrunken werden, kennt dein Partner?",
+  "Wie viele alkoholische Getränke kennt dein Partner?",
+  "Wie viele Fortbewegungsmittel kann dein Partner nennen?",
+  "Wie viele Schuhmarken kennt dein Partner?",
+  "Wie viele Cartoons kennt dein Partner?",
+  "Wie viele Videospiele kennt dein Partner?",
+  "Wie viele Baumarten kann dein Partner nennen?",
+  "Wie viele berühmte Boxer kann dein Partner nennen?",
+  "Wie viele Maler kann dein Partner aufzählen?",
+];
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+let pool = shuffle(QUESTIONS);
+let currentQuestion = "";
+let redCount = 0;
+let blueCount = 0;
+let redPoints = 0;
+let bluePoints = 0;
+let displayValue = 0;
+let maxDisplayValue = 0;
+let leadingTeam = "red";
+let selectedTime = 0;
+let lastPressed = "red";
+let timerInterval = null;
+let timeRemaining = 0;
+
+function init() {
+  const [first, ...rest] = pool;
+  currentQuestion = first;
+  pool = rest;
+  document.getElementById("q-text-1").textContent = currentQuestion;
+}
+
+// Pressing + on either team increments both, and tracks which team pressed last
+function increment(team) {
+  redCount++;
+  blueCount++;
+  lastPressed = team;
+  document.getElementById("red-count").textContent = redCount;
+  document.getElementById("blue-count").textContent = blueCount;
+}
+
+function goToTimeLimit() {
+  document.getElementById("screen-question").classList.add("hidden");
+  document.getElementById("screen-time").classList.remove("hidden");
+}
+
+function selectTime(seconds) {
+  selectedTime = seconds;
+  [60, 120, 180, 240, 300].forEach(s => {
+    document.getElementById("time-" + s).classList.toggle("selected", s === seconds);
+  });
+}
+
+function handleStart() {
+  if (selectedTime === 0) return;
+
+  leadingTeam = lastPressed;
+  displayValue = leadingTeam === "blue" ? blueCount : redCount;
+  maxDisplayValue = displayValue;
+  redCount = 0; blueCount = 0;
+  document.getElementById("red-count").textContent = 0;
+  document.getElementById("blue-count").textContent = 0;
+  document.getElementById("q-text-2").textContent = currentQuestion;
+
+  renderAnswerScreen();
+  startTimer(selectedTime);
+
+  document.getElementById("screen-time").classList.add("hidden");
+  document.getElementById("screen-answer").classList.remove("hidden");
+}
+
+function startTimer(seconds) {
+  clearInterval(timerInterval);
+  timeRemaining = seconds;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timeRemaining--;
+    updateTimerDisplay();
+    if (timeRemaining <= 0) clearInterval(timerInterval);
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const mins = Math.floor(Math.max(timeRemaining, 0) / 60);
+  const secs = Math.max(timeRemaining, 0) % 60;
+  const el = document.getElementById("timer-display");
+  el.textContent = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+  el.classList.toggle("expired", timeRemaining <= 0);
+}
+
+function renderAnswerScreen() {
+  const dv = document.getElementById("display-value");
+  dv.textContent = displayValue;
+  dv.className = "big-number " + leadingTeam;
+  document.getElementById("btn-win").className = "main-btn win-" + leadingTeam;
+  document.getElementById("btn-down").disabled = displayValue <= 0;
+  document.getElementById("btn-up").disabled = displayValue >= maxDisplayValue;
+}
+
+function adjustValue(delta) {
+  displayValue = Math.max(0, Math.min(maxDisplayValue, displayValue + delta));
+  renderAnswerScreen();
+}
+
+function handleWin() {
+  clearInterval(timerInterval);
+  if (leadingTeam === "red") redPoints += 3; else bluePoints += 3;
+  updateScoreBar();
+  document.getElementById("screen-answer").classList.add("hidden");
+  document.getElementById("screen-next").classList.remove("hidden");
+}
+
+function handleLose() {
+  clearInterval(timerInterval);
+  if (leadingTeam === "red") redPoints -= 2; else bluePoints -= 2;
+  updateScoreBar();
+  document.getElementById("screen-answer").classList.add("hidden");
+  document.getElementById("screen-next").classList.remove("hidden");
+}
+
+function goToNextQuestion() {
+  if (pool.length === 0) pool = shuffle(QUESTIONS);
+  const [next, ...rest] = pool;
+  currentQuestion = next;
+  pool = rest;
+  document.getElementById("q-text-1").textContent = currentQuestion;
+  document.getElementById("red-count").textContent = 0;
+  document.getElementById("blue-count").textContent = 0;
+  redCount = 0; blueCount = 0; lastPressed = "red";
+  selectedTime = 0;
+  [60, 120, 180, 240, 300].forEach(s => document.getElementById("time-" + s).classList.remove("selected"));
+  document.getElementById("screen-next").classList.add("hidden");
+  document.getElementById("screen-question").classList.remove("hidden");
+}
+
+function updateScoreBar() {
+  document.getElementById("red-pts").textContent = redPoints;
+  document.getElementById("blue-pts").textContent = bluePoints;
+}
+
+function showQuestion() {
+  document.getElementById("screen-start").classList.add("hidden");
+  document.getElementById("score-bar").classList.remove("hidden");
+  document.getElementById("screen-question").classList.remove("hidden");
+}
+
+init();
+</script>
+</body>
+</html>
